@@ -84,3 +84,44 @@ CREATE TABLE curriculum.offerings (
 	FOREIGN KEY (location_id) REFERENCES courses.locations (location_id) ON DELETE CASCADE ON UPDATE CASCADE,
 	FOREIGN KEY (course_id) REFERENCES curriculum.subjects (course_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- define a select statement to get all students enrolled in a course
+CREATE VIEW courses.v_student_courses AS
+SELECT 
+	courses.registrations.registration_id,
+	courses.registrations.student_id,
+	courses.students.first_name,
+	courses.students.last_name,
+	courses.registrations.registration_status,
+	courses.registrations.registration_date,
+	courses.registrations.required_date,
+	courses.registrations.completion_date,
+	courses.locations.location_name,
+	courses.staffs.first_name AS instructor_first_name,
+	courses.staffs.last_name AS instructor_last_name,
+	curriculum.subjects.product_name,
+	curriculum.subjects.model_year
+FROM
+	courses.registrations
+JOIN
+	courses.students ON courses.registrations.student_id = courses.students.student_id
+JOIN
+	courses.locations ON courses.registrations.location_id = courses.locations.location_id
+JOIN
+	courses.staffs ON courses.registrations.staff_id = courses.staffs.staff_id
+JOIN
+	curriculum.subjects ON courses.registrations.course_id = curriculum.subjects.course_id;
+-- write an index to improve the performance of the query
+CREATE INDEX idx_student_id ON courses.registrations (student_id);
+-- write a stored procedure to get the number of students enrolled in a course
+CREATE PROCEDURE courses.get_student_count
+	@course_id INT
+AS
+BEGIN
+	SELECT 
+		COUNT(student_id) AS student_count
+	FROM
+		courses.registrations
+	WHERE
+		course_id = @course_id;
+END;
